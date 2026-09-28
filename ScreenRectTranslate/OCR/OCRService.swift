@@ -45,8 +45,11 @@ final class OCRService: Sendable {
             }
 
             let observations = request.results ?? []
-            let lines = observations.compactMap { $0.topCandidates(1).first?.string }
-            let text = lines.joined(separator: "\n")
+            let ocrLines = observations.compactMap { observation in
+                observation.topCandidates(1).first.map { OCRLine(text: $0.string, boundingBox: observation.boundingBox) }
+            }
+            let lines = ocrLines.map(\.text)
+            let text = OCRTextJoiner.join(ocrLines)
             AppLog.ocr.info("OCR finished. languages=\(languages.joined(separator: ","), privacy: .public) lines=\(lines.count) chars=\(text.count)")
             return OCRResult(text: text, lines: lines)
         }.value
