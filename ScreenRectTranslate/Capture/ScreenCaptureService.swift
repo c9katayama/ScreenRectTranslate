@@ -23,7 +23,7 @@ enum ScreenCaptureError: LocalizedError {
     }
 }
 
-/// 選択範囲の画面取り込み。ScreenCaptureKit を優先し、失敗時は CGWindowListCreateImage に倒す。
+/// 選択範囲の画面取り込み。ScreenCaptureKit を使う（CGWindowListCreateImage は macOS 27 SDK で使用不可）。
 final class ScreenCaptureService: Sendable {
     func capture(rectInAppKitPoints rect: CGRect) async throws -> CGImage {
         guard let screen = ScreenGeometry.screen(containing: rect) else {
@@ -34,18 +34,9 @@ final class ScreenCaptureService: Sendable {
             throw ScreenCaptureError.permissionDenied
         }
 
-        do {
-            let image = try await captureWithScreenCaptureKit(rect: rect, screen: screen)
-            AppLog.capture.info("Captured via ScreenCaptureKit \(image.width)x\(image.height)")
-            return image
-        } catch {
-            AppLog.capture.error("ScreenCaptureKit failed: \(error.localizedDescription, privacy: .public). Falling back to CGWindowListCreateImage.")
-            if let image = captureWithCGWindowList(rect: rect) {
-                AppLog.capture.info("Captured via CGWindowListCreateImage \(image.width)x\(image.height)")
-                return image
-            }
-            throw error
-        }
+        let image = try await captureWithScreenCaptureKit(rect: rect, screen: screen)
+        AppLog.capture.info("Captured via ScreenCaptureKit \(image.width)x\(image.height)")
+        return image
     }
 
     private func captureWithScreenCaptureKit(rect: CGRect, screen: NSScreen) async throws -> CGImage {
@@ -95,24 +86,5 @@ final class ScreenCaptureService: Sendable {
             AppLog.capture.error("SCScreenshotManager.captureImage failed: \(error.localizedDescription, privacy: .public)")
             throw ScreenCaptureError.captureFailed(error.localizedDescription)
         }
-    }
-
-    private func captureWithCGWindowList(rect: CGRect) -> CGImage? {
-        let mainHeight = ScreenGeometry.mainDisplayHeight()
-        let cgRect = ScreenGeometry.cgWindowListRect(appKitRect: rect, mainDisplayHeight: mainHeight)
-        guard let image = CGWindowListCreateImage(
-            cgRect,
-            .optionOnScreenOnly,
-            kCGNullWindowID,
-            [.bestResolution, .boundsIgnoreFraming]
-        ) else {
-            AppLog.capture.error("CGWindowListCreateImage returned nil for \(String(describing: cgRect), privacy: .public)")
-            return nil
-        }
-        if image.width == 0 || image.height == 0 {
-            AppLog.capture.error("CGWindowListCreateImage returned an empty image")
-            return nil
-        }
-        return image
     }
 }

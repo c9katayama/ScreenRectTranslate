@@ -8,7 +8,7 @@
 
 1. メニューバーアイコン、またはデフォルトホットキー **⌥⇧T（Option + Shift + T）** で範囲選択を開始します。
 2. 画面が暗くなります。ドラッグして範囲を選びます。Esc でキャンセル、マウスを離すと確定します。
-3. 選択範囲を ScreenCaptureKit で取り込みます。失敗時は `CGWindowListCreateImage` に倒します。
+3. 選択範囲を ScreenCaptureKit で取り込みます。
 4. Vision `VNRecognizeTextRequest` で文字認識します（`en-US` / `ja-JP`）。
 5. NaturalLanguage で英語の有無を判定します。英語がなければ OCR 結果だけを出し、翻訳はしません。
 6. 英語があれば Apple Translation（`TranslationSession`）で英語 → 日本語に訳します。オンデバイスで、API キーは不要です。
@@ -78,7 +78,7 @@ flowchart TD
     n2 -->|未許可| n3["3. 権限ガイドを表示"]
     n2 -->|許可済み| n4["4. 全画面オーバーレイで矩形選択"]
     n4 -->|Esc / 小さすぎる| n5["5. キャンセルして終了"]
-    n4 -->|マウスアップ| n6["6. Capture: ScreenCaptureKit（失敗時は CGWindowListCreateImage）"]
+    n4 -->|マウスアップ| n6["6. Capture: ScreenCaptureKit"]
     n6 --> n7["7. OCR: Vision VNRecognizeTextRequest（en-US / ja-JP）"]
     n7 --> n8["8. NaturalLanguage で英語の有無を判定"]
     n8 -->|英語なし| n9["9. OCR だけ表示。翻訳しない"]
