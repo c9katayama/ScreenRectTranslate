@@ -1,0 +1,25 @@
+# Xcode
+xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+DerivedData/
+build/
+*.moved-aside
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Swift / SPM
+.build/
+.swiftpm/
+
+# Editor
+.idea/
+.vscode/
+*.swp
+
+# Agent scratch
+agent-tools/
