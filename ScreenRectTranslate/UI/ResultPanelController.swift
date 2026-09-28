@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 
 @MainActor
@@ -8,10 +9,16 @@ final class ResultPanelController: NSObject, NSWindowDelegate {
     private var panel: NSPanel?
     private var globalMonitor: Any?
     private var localMonitor: Any?
+    private var opacityCancellable: AnyCancellable?
 
     init(settings: AppSettings, translation: TranslationService) {
         self.settings = settings
         self.model = ResultPanelModel(translation: translation)
+        super.init()
+        // 環境設定のスライダー操作を、表示中のウィンドウにもすぐ反映する。
+        opacityCancellable = settings.$resultPanelOpacity.sink { [weak self] opacity in
+            self?.panel?.alphaValue = opacity
+        }
     }
 
     func showOCR(text: String, detection: LanguageDetectionResult, anchorRect: CGRect) {
@@ -73,6 +80,7 @@ final class ResultPanelController: NSObject, NSWindowDelegate {
         panel.standardWindowButton(.miniaturizeButton)?.isHidden = true
         panel.standardWindowButton(.zoomButton)?.isHidden = true
         panel.delegate = self
+        panel.alphaValue = settings.resultPanelOpacity
         return panel
     }
 

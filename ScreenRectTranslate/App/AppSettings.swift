@@ -9,6 +9,7 @@ final class AppSettings: ObservableObject {
         static let modifiers = "hotkey.carbonModifiers"
         static let closesResultOnOutsideClick = "resultPanel.closesOnOutsideClick"
         static let resultPanelFrame = "resultPanel.frame"
+        static let resultPanelOpacity = "resultPanel.opacity"
     }
 
     /// ANSI T
@@ -34,6 +35,15 @@ final class AppSettings: ObservableObject {
     @Published var closesResultOnOutsideClick: Bool {
         didSet {
             UserDefaults.standard.set(closesResultOnOutsideClick, forKey: Keys.closesResultOnOutsideClick)
+        }
+    }
+
+    static let resultPanelOpacityRange: ClosedRange<Double> = 0.3...1.0
+
+    /// 翻訳ウィンドウの不透明度。1.0 で不透明。
+    @Published var resultPanelOpacity: Double {
+        didSet {
+            UserDefaults.standard.set(resultPanelOpacity, forKey: Keys.resultPanelOpacity)
         }
     }
 
@@ -63,6 +73,8 @@ final class AppSettings: ObservableObject {
         keyCode = storedCode.map { UInt32($0) } ?? Self.defaultKeyCode
         carbonModifiers = storedModifiers.map { UInt32($0) } ?? Self.defaultCarbonModifiers
         closesResultOnOutsideClick = UserDefaults.standard.object(forKey: Keys.closesResultOnOutsideClick) as? Bool ?? true
+        let storedOpacity = UserDefaults.standard.object(forKey: Keys.resultPanelOpacity) as? Double ?? 1.0
+        resultPanelOpacity = min(max(storedOpacity, Self.resultPanelOpacityRange.lowerBound), Self.resultPanelOpacityRange.upperBound)
     }
 
     func resetHotkey() {

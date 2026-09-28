@@ -77,6 +77,14 @@ struct PreferencesView: View {
 
             Section("翻訳ウィンドウ") {
                 Toggle("ウィンドウの外をクリックしたら閉じる", isOn: $settings.closesResultOnOutsideClick)
+                LabeledContent("不透明度") {
+                    HStack {
+                        Slider(value: $settings.resultPanelOpacity, in: AppSettings.resultPanelOpacityRange, step: 0.05)
+                        Text("\(Int((settings.resultPanelOpacity * 100).rounded()))%")
+                            .font(.body.monospacedDigit())
+                            .frame(width: 44, alignment: .trailing)
+                    }
+                }
                 Button("位置とサイズを初期状態に戻す") {
                     settings.resultPanelFrame = nil
                 }

@@ -7,6 +7,7 @@ final class ResultPanelModel: ObservableObject {
     @Published var statusMessage: String?
     @Published var isError: Bool = false
     @Published var copiedLabel: String?
+    private var copiedResetTask: Task<Void, Never>?
 
     let translation: TranslationService
 
@@ -45,6 +46,12 @@ final class ResultPanelModel: ObservableObject {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
         copiedLabel = label
+        copiedResetTask?.cancel()
+        copiedResetTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(1.5))
+            guard !Task.isCancelled else { return }
+            self?.copiedLabel = nil
+        }
         AppLog.ui.info("Copied \(label, privacy: .public)")
     }
 }
@@ -56,7 +63,6 @@ struct ResultPanelView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            header
             if let statusMessage = model.statusMessage {
                 Text(statusMessage)
                     .font(.callout)
@@ -67,11 +73,11 @@ struct ResultPanelView: View {
                 title: "認識したテキスト",
                 text: model.ocrText,
                 placeholder: "OCR 結果はありません",
-                copyLabel: "原文をコピー"
+                copyLabel: "原文"
             )
             translationBlock
             HStack {
-                Button("両方コピー") {
+                Button(model.copiedLabel == "両方" ? "コピーしました" : "両方コピー") {
                     let ja = translation.translatedText
                     let combined = ja.isEmpty ? model.ocrText : "\(model.ocrText)\n\n---\n\n\(ja)"
                     model.copy(combined, label: "両方")
@@ -84,24 +90,6 @@ struct ResultPanelView: View {
         }
         .padding(16)
         .frame(minWidth: 360, maxWidth: .infinity, minHeight: 280, maxHeight: .infinity, alignment: .topLeading)
-    }
-
-    private var header: some View {
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("ScreenRectTranslate")
-                    .font(.headline)
-                Text("Vision OCR → Apple Translation")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            if let copied = model.copiedLabel {
-                Text("\(copied)をコピーしました")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
     }
 
     @ViewBuilder
@@ -135,7 +123,7 @@ struct ResultPanelView: View {
                 title: "日本語訳",
                 text: translation.translatedText,
                 placeholder: "翻訳結果はありません",
-                copyLabel: "訳文をコピー"
+                copyLabel: "訳文"
             )
         }
     }
@@ -160,9 +148,13 @@ struct ResultPanelView: View {
                 Text(title)
                     .font(.subheadline.weight(.semibold))
                 Spacer()
-                Button(copyLabel) {
+                Button {
                     model.copy(text, label: copyLabel)
+                } label: {
+                    Image(systemName: model.copiedLabel == copyLabel ? "checkmark" : "doc.on.doc")
                 }
+                .buttonStyle(.borderless)
+                .help("\(copyLabel)をコピー")
                 .disabled(text.isEmpty)
             }
             ScrollView {
