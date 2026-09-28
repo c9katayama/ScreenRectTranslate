@@ -3,12 +3,14 @@ import SwiftUI
 
 @MainActor
 final class ResultPanelController: NSObject, NSWindowDelegate {
+    private let settings: AppSettings
     private let model: ResultPanelModel
     private var panel: NSPanel?
     private var globalMonitor: Any?
     private var localMonitor: Any?
 
-    init(translation: TranslationService) {
+    init(settings: AppSettings, translation: TranslationService) {
+        self.settings = settings
         self.model = ResultPanelModel(translation: translation)
     }
 
@@ -34,13 +36,19 @@ final class ResultPanelController: NSObject, NSWindowDelegate {
         }
         let hosting = NSHostingView(rootView: view)
         hosting.translatesAutoresizingMaskIntoConstraints = false
+        // 内容に合わせてウィンドウを伸縮させない。ユーザーが決めたサイズを保つため。
+        hosting.sizingOptions = [.minSize]
 
         let panel = self.panel ?? makePanel()
         panel.contentView = hosting
-        hosting.layoutSubtreeIfNeeded()
-        let fitting = hosting.fittingSize
-        panel.setContentSize(NSSize(width: max(fitting.width, 440), height: min(max(fitting.height, 280), 560)))
-        position(panel, near: anchorRect)
+        if let saved = savedFrame() {
+            panel.setFrame(saved, display: true)
+        } else {
+            hosting.layoutSubtreeIfNeeded()
+            let fitting = hosting.fittingSize
+            panel.setContentSize(NSSize(width: max(fitting.width, 440), height: min(max(fitting.height, 280), 560)))
+            position(panel, near: anchorRect)
+        }
         NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
         self.panel = panel
@@ -51,7 +59,7 @@ final class ResultPanelController: NSObject, NSWindowDelegate {
     private func makePanel() -> NSPanel {
         let panel = NSPanel(
             contentRect: NSRect(x: 0, y: 0, width: 440, height: 360),
-            styleMask: [.titled, .closable, .fullSizeContentView, .nonactivatingPanel],
+            styleMask: [.titled, .closable, .resizable, .fullSizeContentView, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
@@ -66,6 +74,16 @@ final class ResultPanelController: NSObject, NSWindowDelegate {
         panel.standardWindowButton(.zoomButton)?.isHidden = true
         panel.delegate = self
         return panel
+    }
+
+    /// 保存済みの frame。いまつながっている画面から大きく外れる場合は使わない。
+    private func savedFrame() -> NSRect? {
+        guard let frame = settings.resultPanelFrame, frame.width > 0, frame.height > 0 else { return nil }
+        let onScreen = NSScreen.screens.contains { screen in
+            let visible = screen.visibleFrame.intersection(frame)
+            return visible.width >= 80 && visible.height >= 80
+        }
+        return onScreen ? frame : nil
     }
 
     private func position(_ panel: NSPanel, near rect: CGRect?) {
@@ -90,7 +108,8 @@ final class ResultPanelController: NSObject, NSWindowDelegate {
     private func installMonitors(for panel: NSPanel) {
         removeMonitors()
         globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
-            guard let self, let panel = self.panel, panel.isVisible else { return }
+            guard let self, self.settings.closesResultOnOutsideClick,
+                  let panel = self.panel, panel.isVisible else { return }
             if !panel.frame.contains(NSEvent.mouseLocation) {
                 self.dismiss()
             }
@@ -113,6 +132,19 @@ final class ResultPanelController: NSObject, NSWindowDelegate {
             NSEvent.removeMonitor(localMonitor)
             self.localMonitor = nil
         }
+    }
+
+    func windowDidMove(_ notification: Notification) {
+        saveFrame()
+    }
+
+    func windowDidResize(_ notification: Notification) {
+        saveFrame()
+    }
+
+    private func saveFrame() {
+        guard let panel, panel.isVisible else { return }
+        settings.resultPanelFrame = panel.frame
     }
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {

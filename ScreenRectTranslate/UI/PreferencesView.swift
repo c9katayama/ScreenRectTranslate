@@ -1,6 +1,40 @@
 import AppKit
 import SwiftUI
 
+/// 環境設定ウィンドウ。macOS 14 以降は `showSettingsWindow:` で SwiftUI の Settings を開けないため、自前で表示する。
+@MainActor
+final class PreferencesWindowController {
+    private let settings: AppSettings
+    private let translation: TranslationService
+    private var window: NSWindow?
+
+    init(settings: AppSettings, translation: TranslationService) {
+        self.settings = settings
+        self.translation = translation
+    }
+
+    func show() {
+        let window = self.window ?? makeWindow()
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+        self.window = window
+        AppLog.app.info("Preferences window shown")
+    }
+
+    private func makeWindow() -> NSWindow {
+        let view = PreferencesView()
+            .environmentObject(settings)
+            .environmentObject(translation)
+        let window = NSWindow(contentViewController: NSHostingController(rootView: view))
+        window.title = "環境設定"
+        window.styleMask = [.titled, .closable]
+        window.center()
+        window.isReleasedWhenClosed = false
+        window.level = .floating
+        return window
+    }
+}
+
 struct PreferencesView: View {
     @EnvironmentObject private var settings: AppSettings
     @EnvironmentObject private var translation: TranslationService
@@ -37,6 +71,16 @@ struct PreferencesView: View {
                         .font(.callout)
                 }
                 Text("初期値は ⌥⇧T です。修飾キー（⌘⌥⌃⇧）を1つ以上含めてください。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("翻訳ウィンドウ") {
+                Toggle("ウィンドウの外をクリックしたら閉じる", isOn: $settings.closesResultOnOutsideClick)
+                Button("位置とサイズを初期状態に戻す") {
+                    settings.resultPanelFrame = nil
+                }
+                Text("位置とサイズは最後に表示したときのものを使います。Esc キーと「閉じる」ボタンでは、いつでも閉じられます。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

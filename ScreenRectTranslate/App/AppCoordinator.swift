@@ -16,7 +16,7 @@ final class AppCoordinator {
     init(settings: AppSettings, translation: TranslationService) {
         self.settings = settings
         self.translation = translation
-        self.resultPanel = ResultPanelController(translation: translation)
+        self.resultPanel = ResultPanelController(settings: settings, translation: translation)
     }
 
     func runFlow() {

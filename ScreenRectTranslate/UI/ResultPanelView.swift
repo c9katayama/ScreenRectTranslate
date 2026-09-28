@@ -83,8 +83,7 @@ struct ResultPanelView: View {
             }
         }
         .padding(16)
-        .frame(width: 440)
-        .frame(maxHeight: 560)
+        .frame(minWidth: 360, maxWidth: .infinity, minHeight: 280, maxHeight: .infinity, alignment: .topLeading)
     }
 
     private var header: some View {
@@ -173,7 +172,7 @@ struct ResultPanelView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .textSelection(.enabled)
             }
-            .frame(minHeight: 72, maxHeight: 160)
+            .frame(minHeight: 72, maxHeight: .infinity)
             .padding(8)
             .background(Color(nsColor: .textBackgroundColor))
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))

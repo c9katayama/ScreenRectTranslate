@@ -37,6 +37,7 @@ final class SelectionOverlayController {
 
         windows.forEach { $0.orderFrontRegardless() }
         windows.first?.makeKey()
+        NSCursor.crosshair.set()
 
         localMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             if event.keyCode == UInt16(kVK_Escape) {
@@ -62,6 +63,7 @@ final class SelectionOverlayController {
         }
         windows.forEach { $0.orderOut(nil) }
         windows.removeAll()
+        NSCursor.arrow.set()
         if let rect {
             AppLog.overlay.info("Selection completed \(Int(rect.width))x\(Int(rect.height))")
         } else {
@@ -125,14 +127,29 @@ private final class SelectionOverlayView: NSView {
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         window?.makeFirstResponder(self)
-        NSCursor.crosshair.push()
     }
 
-    override func viewWillMove(toWindow newWindow: NSWindow?) {
-        super.viewWillMove(toWindow: newWindow)
-        if newWindow == nil {
-            NSCursor.pop()
-        }
+    /// キーウィンドウでなくても十字カーソルにするため、常時有効なトラッキング領域を使う。
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        trackingAreas.forEach(removeTrackingArea)
+        addTrackingArea(NSTrackingArea(
+            rect: .zero,
+            options: [.activeAlways, .inVisibleRect, .cursorUpdate, .mouseMoved, .mouseEnteredAndExited],
+            owner: self
+        ))
+    }
+
+    override func cursorUpdate(with event: NSEvent) {
+        NSCursor.crosshair.set()
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        NSCursor.crosshair.set()
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        NSCursor.crosshair.set()
     }
 
     override func resetCursorRects() {
@@ -152,29 +169,11 @@ private final class SelectionOverlayView: NSView {
         if let selection = selectionRect, selection.width > 1, selection.height > 1 {
             NSColor.white.setStroke()
             let border = NSBezierPath(rect: selection.insetBy(dx: 0.5, dy: 0.5))
-            border.lineWidth = 2
+            border.lineWidth = 1
             border.stroke()
 
-            NSColor.systemTeal.setStroke()
-            let inner = NSBezierPath(rect: selection.insetBy(dx: 2, dy: 2))
-            inner.lineWidth = 1
-            inner.stroke()
-
             drawSizeLabel(for: selection)
-        } else {
-            drawHint()
         }
-    }
-
-    private func drawHint() {
-        let text = "ドラッグして範囲を選択   Esc でキャンセル"
-        let attrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 16, weight: .medium),
-            .foregroundColor: NSColor.white.withAlphaComponent(0.92)
-        ]
-        let size = text.size(withAttributes: attrs)
-        let point = CGPoint(x: (bounds.width - size.width) / 2, y: (bounds.height - size.height) / 2)
-        text.draw(at: point, withAttributes: attrs)
     }
 
     private func drawSizeLabel(for selection: CGRect) {
@@ -212,11 +211,13 @@ private final class SelectionOverlayView: NSView {
     override func mouseDown(with event: NSEvent) {
         startPoint = convert(event.locationInWindow, from: nil)
         currentPoint = startPoint
+        NSCursor.crosshair.set()
         needsDisplay = true
     }
 
     override func mouseDragged(with event: NSEvent) {
         currentPoint = convert(event.locationInWindow, from: nil)
+        NSCursor.crosshair.set()
         needsDisplay = true
     }
 

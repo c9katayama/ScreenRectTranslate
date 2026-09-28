@@ -7,6 +7,8 @@ final class AppSettings: ObservableObject {
     enum Keys {
         static let keyCode = "hotkey.keyCode"
         static let modifiers = "hotkey.carbonModifiers"
+        static let closesResultOnOutsideClick = "resultPanel.closesOnOutsideClick"
+        static let resultPanelFrame = "resultPanel.frame"
     }
 
     /// ANSI T
@@ -28,6 +30,27 @@ final class AppSettings: ObservableObject {
         }
     }
 
+    /// 翻訳ウィンドウの外をクリックしたときに自動で閉じるか。
+    @Published var closesResultOnOutsideClick: Bool {
+        didSet {
+            UserDefaults.standard.set(closesResultOnOutsideClick, forKey: Keys.closesResultOnOutsideClick)
+        }
+    }
+
+    /// 翻訳ウィンドウを最後に表示した位置とサイズ（スクリーン座標）。
+    var resultPanelFrame: NSRect? {
+        get {
+            UserDefaults.standard.string(forKey: Keys.resultPanelFrame).map(NSRectFromString)
+        }
+        set {
+            if let newValue {
+                UserDefaults.standard.set(NSStringFromRect(newValue), forKey: Keys.resultPanelFrame)
+            } else {
+                UserDefaults.standard.removeObject(forKey: Keys.resultPanelFrame)
+            }
+        }
+    }
+
     var onHotkeyChange: (() -> Void)?
 
     var combo: HotkeyCombo {
@@ -39,6 +62,7 @@ final class AppSettings: ObservableObject {
         let storedModifiers = UserDefaults.standard.object(forKey: Keys.modifiers) as? Int
         keyCode = storedCode.map { UInt32($0) } ?? Self.defaultKeyCode
         carbonModifiers = storedModifiers.map { UInt32($0) } ?? Self.defaultCarbonModifiers
+        closesResultOnOutsideClick = UserDefaults.standard.object(forKey: Keys.closesResultOnOutsideClick) as? Bool ?? true
     }
 
     func resetHotkey() {

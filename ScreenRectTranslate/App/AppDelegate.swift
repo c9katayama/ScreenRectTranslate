@@ -9,16 +9,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotkey: HotkeyManager!
     private var statusItem: StatusItemController!
     private var translationHost: TranslationHostController!
+    private var preferences: PreferencesWindowController!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
 
         translationHost = TranslationHostController(service: translationService)
         coordinator = AppCoordinator(settings: settings, translation: translationService)
+        preferences = PreferencesWindowController(settings: settings, translation: translationService)
         statusItem = StatusItemController(
             settings: settings,
             onTranslate: { [weak self] in self?.coordinator.runFlow() },
-            onPreferences: { Self.openSettings() },
+            onPreferences: { [weak self] in self?.preferences.show() },
             onPermissions: { [weak self] in self?.coordinator.showPermissions() },
             onPrepareTranslation: { [weak self] in self?.coordinator.prepareTranslationLanguages() },
             onQuit: { NSApp.terminate(nil) }
@@ -43,10 +45,5 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         hotkey?.unregister()
         AppLog.app.info("ScreenRectTranslate terminating")
-    }
-
-    static func openSettings() {
-        NSApp.activate(ignoringOtherApps: true)
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
     }
 }
