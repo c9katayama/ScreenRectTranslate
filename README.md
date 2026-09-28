@@ -1,5 +1,7 @@
 # ScreenRectTranslate
 
+公開リポジトリ: https://github.com/c9katayama/ScreenRectTranslate
+
 メニューバー常駐の macOS アプリです。グローバルホットキーで画面の矩形を選び、Vision で OCR したあと、Apple Translation で英語を日本語に翻訳します。個人利用向けのプロトタイプで、App Store 配布は対象外です。
 
 クラウド翻訳（Gemini など）やローカル LLM（Ollama）は v1 には入れていません。将来のフォールバック候補として残しています。
